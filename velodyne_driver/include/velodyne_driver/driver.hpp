@@ -37,10 +37,12 @@
 #include <future>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <diagnostic_updater/diagnostic_updater.hpp>
 #include <diagnostic_updater/publisher.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/u_int64.hpp>
 
 #include "velodyne_driver/input.hpp"
 
@@ -79,6 +81,9 @@ private:
   std::unique_ptr<Input> input_;
   rclcpp::Publisher<velodyne_msgs::msg::VelodyneScan>::SharedPtr output_;
   int last_azimuth_;
+
+  rclcpp::Publisher<std_msgs::msg::UInt64>::SharedPtr time_publisher_;
+  uint64_t packet_time_;
 
   /* diagnostics updater */
   diagnostic_updater::Updater diagnostics_;

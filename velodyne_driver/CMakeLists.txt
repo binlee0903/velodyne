@@ -16,6 +16,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(velodyne_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 # libpcap provides no pkg-config or find_package module:
 set(libpcap_LIBRARIES -lpcap)

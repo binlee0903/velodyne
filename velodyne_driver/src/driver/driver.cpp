@@ -44,6 +44,8 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <time.h>
+#include <cstdint>
 
 #include <rcl_interfaces/msg/floating_point_range.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
@@ -183,7 +185,10 @@ VelodyneDriver::VelodyneDriver(const rclcpp::NodeOptions & options)
   output_ =
     this->create_publisher<velodyne_msgs::msg::VelodyneScan>("velodyne_packets", 10);
 
+  time_publisher_ = this->create_publisher<std_msgs::msg::UInt64>("time_packets", 10);
+
   last_azimuth_ = -1;
+  packet_time_ = 0;
 
   poll_thread_ = std::thread(&VelodyneDriver::pollThread, this);
 }
@@ -210,6 +215,9 @@ bool VelodyneDriver::poll()
   // Allocate a new unique pointer for zero-copy sharing with other nodes.
   std::unique_ptr<velodyne_msgs::msg::VelodyneScan> scan =
     std::make_unique<velodyne_msgs::msg::VelodyneScan>();
+
+  static bool isbStart = true;
+  static timespec ts;
 
   if (config_.cut_angle >= 0) {  // Cut at specific angle feature enabled
     scan->packets.reserve(config_.npackets);
@@ -259,10 +267,18 @@ bool VelodyneDriver::poll()
         // keep reading until full packet received
         int rc = input_->getPacket(&scan->packets[i], config_.time_offset);
         if (rc == 0) {  // got a full packet?
+
+          if (isbStart == true)
+          {
+            isbStart = false;
+            clock_gettime(CLOCK_MONOTONIC, &ts);
+            packet_time_ = static_cast<uint64_t>(ts.tv_sec) * 1000000000ULL + static_cast<uint64_t>(ts.tv_nsec);
+          }
           break;
         }
 
         if (rc < 0) {  // end of file reached?
+          isbStart = true;
           return false;
         }
       }
@@ -277,9 +293,14 @@ bool VelodyneDriver::poll()
   scan->header.frame_id = config_.frame_id;
   output_->publish(std::move(scan));
 
+  std_msgs::msg::UInt64 time_msg;
+  time_msg.data = packet_time_;
+  time_publisher_->publish(std::move(time_msg));
+
   // notify diagnostics that a message has been published, updating
   // its status
   diag_topic_->tick(stamp);
+  isbStart = true;
 
   return true;
 }

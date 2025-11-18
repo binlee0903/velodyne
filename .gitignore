@@ -4,3 +4,6 @@
 *.user
 doc
 TAGS
+build
+install
+log
