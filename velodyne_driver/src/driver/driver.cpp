@@ -185,7 +185,7 @@ VelodyneDriver::VelodyneDriver(const rclcpp::NodeOptions & options)
   output_ =
     this->create_publisher<velodyne_msgs::msg::VelodyneScan>("velodyne_packets", 10);
 
-  time_publisher_ = this->create_publisher<std_msgs::msg::UInt64MultiArray>("time_packets", 10);
+  time_publisher_ = this->create_publisher<std_msgs::msg::UInt64MultiArray>("my_time_packets", 10);
 
   last_azimuth_ = -1;
   packet_time_ = 0;
@@ -296,7 +296,7 @@ bool VelodyneDriver::poll()
 
   std_msgs::msg::UInt64MultiArray time_msg;
   time_msg.data.resize(2);
-  time_msg.data[1] = frame_index_;
+  time_msg.data[0] = frame_index_;
   time_msg.data[1] = packet_time_;
   time_publisher_->publish(std::move(time_msg));
   frame_index_++;
