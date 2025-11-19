@@ -185,10 +185,11 @@ VelodyneDriver::VelodyneDriver(const rclcpp::NodeOptions & options)
   output_ =
     this->create_publisher<velodyne_msgs::msg::VelodyneScan>("velodyne_packets", 10);
 
-  time_publisher_ = this->create_publisher<std_msgs::msg::UInt64>("time_packets", 10);
+  time_publisher_ = this->create_publisher<std_msgs::msg::UInt64MultiArray>("time_packets", 10);
 
   last_azimuth_ = -1;
   packet_time_ = 0;
+  frame_index_ = 0;
 
   poll_thread_ = std::thread(&VelodyneDriver::pollThread, this);
 }
@@ -290,12 +291,15 @@ bool VelodyneDriver::poll()
   builtin_interfaces::msg::Time stamp =
     config_.timestamp_first_packet ? scan->packets.front().stamp : scan->packets.back().stamp;
   scan->header.stamp = stamp;
-  scan->header.frame_id = config_.frame_id;
+  scan->header.frame_id = std::to_string(frame_index_);
   output_->publish(std::move(scan));
 
-  std_msgs::msg::UInt64 time_msg;
-  time_msg.data = packet_time_;
+  std_msgs::msg::UInt64MultiArray time_msg;
+  time_msg.data.resize(2);
+  time_msg.data[1] = frame_index_;
+  time_msg.data[1] = packet_time_;
   time_publisher_->publish(std::move(time_msg));
+  frame_index_++;
 
   // notify diagnostics that a message has been published, updating
   // its status
